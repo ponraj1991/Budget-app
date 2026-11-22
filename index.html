@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Monthly Budget</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&display=swap">
+<style>
+:root{--bg:#edf2f0;--surface:#fff;--ink:#12302c;--muted:#5d7571;--line:#d3dfdc;--accent:#0f6b61;--on-accent:#fff;--bad:#b4281e;--track:#dbe6e3;--head:#e2ece9;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1a18;--surface:#172624;--ink:#e4efec;--muted:#93aaa5;--line:#29403c;--accent:#4fc1b2;--on-accent:#06201c;--bad:#ff8a7d;--track:#243a36;--head:#20352f}}
+:root[data-theme="dark"]{--bg:#0f1a18;--surface:#172624;--ink:#e4efec;--muted:#93aaa5;--line:#29403c;--accent:#4fc1b2;--on-accent:#06201c;--bad:#ff8a7d;--track:#243a36;--head:#20352f}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none!important}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 "Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif}
+main{max-width:560px;margin:0 auto;padding:16px 16px 40px}
+h1{font-size:1.3rem;margin:4px 0 14px}
+h2{font-size:1rem;margin:0 0 10px}
+section{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:.85rem;color:var(--muted);margin:0 0 4px}
+input,select,button{font:inherit;color:var(--ink)}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input:focus-visible,select:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+button{padding:10px 14px;border:0;border-radius:10px;background:var(--accent);color:var(--on-accent);font-weight:600;cursor:pointer}
+button.quiet{background:transparent;color:var(--accent);border:1px solid var(--line)}
+button.wide{width:100%}
+button.big{width:100%;padding:18px;font-size:1.15rem;margin-bottom:12px}
+.row{display:flex;gap:10px;align-items:flex-end;margin-bottom:10px}
+.row>div{flex:1;min-width:0}
+.row>button{flex:none}
+.sub{color:var(--muted);font-size:.9rem}
+.balance{font-size:2.4rem;font-weight:700;line-height:1.1;margin:2px 0}
+.neg{color:var(--bad)}
+.bar{height:10px;border-radius:6px;background:var(--track);margin-top:12px;overflow:hidden}
+.bar>i{display:block;height:100%;background:var(--accent);width:0}
+.bar.over>i{background:var(--bad)}
+ul{list-style:none;margin:0;padding:0}
+li{display:flex;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+li:first-child{border-top:0}
+li small{display:block;color:var(--muted)}
+li .amt{font-weight:600;text-align:right;white-space:nowrap}
+li button{padding:2px 8px;margin-top:4px;font-size:.8rem}
+.empty{color:var(--muted);margin:0}
+.msg{min-height:1.2em;font-size:.85rem;color:var(--muted);margin:6px 0 0}
+.msg.neg{color:var(--bad);font-weight:600}
+li.grp{display:block}
+details{width:100%}
+summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600;list-style:none}
+summary::-webkit-details-marker{display:none}
+summary::before{content:"\25B8";margin-right:6px;color:var(--muted)}
+details[open]>summary::before{content:"\25BE"}
+summary>span:nth-child(1){flex:1}
+.sublist{margin:6px 0 0;padding-left:12px;border-left:2px solid var(--line)}
+.sheet{overflow-x:auto;margin-bottom:14px}
+table{border-collapse:collapse;width:100%;min-width:420px;font-size:.9rem}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left}
+th{background:var(--head)}
+td.n,th.n{text-align:right}
+tr.tot td{font-weight:700;background:var(--head)}
+.back{margin-bottom:12px}
+.hero{font-family:"Sora","Segoe UI",Roboto,sans-serif;font-size:2.4rem;line-height:1.15;font-weight:700;letter-spacing:-.03em;text-align:center;margin:56px 0 40px;color:var(--accent)}
+#monthList button{width:100%;text-align:left;padding:16px;margin-bottom:10px;background:var(--surface);font-size:1.05rem;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+</style>
+</head>
+<body>
+<main>
+
+<div id="home">
+  <h1 class="hero">Plan your monthly Budget</h1>
+  <button class="big" id="goCreate">Create</button>
+  <button class="big quiet" id="goOpen">Open</button>
+  <section style="margin-top:28px">
+    <h2>Your data</h2>
+    <p class="sub" style="margin:0 0 10px">Back up all months to a file, or restore from one. Do this before clearing browser data.</p>
+    <div class="row" style="margin:0"><div><button class="quiet wide" id="bkUp">Backup data</button></div><div><button class="quiet wide" id="bkIn">Restore backup</button></div></div>
+    <input type="file" id="rf" accept=".json,application/json" hidden>
+    <p class="msg" id="hmsg" role="status"></p>
+  </section>
+</div>
+
+<div id="create" hidden>
+  <button class="quiet back" data-home>Home</button>
+  <h1>Create budget</h1>
+  <section>
+    <div class="row">
+      <div><label for="cm">Month</label><select id="cm"></select></div>
+      <div><label for="cy">Year</label><select id="cy"></select></div>
+    </div>
+    <h2>Budget items</h2>
+    <ul id="draftList"></ul>
+    <div class="sub" id="draftTotal" style="margin-top:8px"></div>
+  </section>
+  <section>
+    <h2>Add budget item</h2>
+    <div class="row">
+      <div><label for="dn">Item</label><input id="dn" type="text" maxlength="30" placeholder="House rent"></div>
+      <div><label for="da">Budget (₹)</label><input id="da" type="number" inputmode="decimal" min="0" placeholder="9500"></div>
+    </div>
+    <button class="quiet wide" id="addDraft">Add item</button>
+  </section>
+  <button class="wide" id="saveBudget">Save budget</button>
+  <p class="msg" id="cmsg" role="status"></p>
+</div>
+
+<div id="pick" hidden>
+  <button class="quiet back" data-home>Home</button>
+  <h1>Select month</h1>
+  <p class="empty" id="noMonths" hidden>No budgets yet. Go back and tap Create.</p>
+  <section id="delBox" hidden>
+    <h2 id="delText"></h2>
+    <div class="row"><div><label for="mm">Copy to month</label><select id="mm"></select></div><div><label for="my">Year</label><select id="my"></select></div></div>
+    <button class="wide" id="copyYes" style="margin-bottom:10px">Copy budget items</button>
+    <div class="row" style="margin:0"><div><button class="quiet wide" id="delYes">Delete month</button></div><div><button class="quiet wide" id="delNo">Cancel</button></div></div>
+    <p class="msg" id="pmsg" role="status"></p>
+  </section>
+  <div id="monthList"></div>
+  <p class="msg" id="pickMsg" role="status"></p>
+  <p class="sub" id="pickHint">Long press a month to copy or delete it.</p>
+</div>
+
+<div id="open" hidden>
+  <button class="quiet back" id="openBack">Months</button>
+  <h1 id="openTitle">Budget</h1>
+  <div id="openBody">
+    <section>
+      <div class="sub">Balance left</div>
+      <div class="balance" id="bal">₹0</div>
+      <div class="sub" id="sum"></div>
+      <div class="bar" id="bar"><i id="fill"></i></div>
+    </section>
+    <section>
+      <h2>Budget and expenses</h2>
+      <ul id="catList"></ul>
+    </section>
+    <section>
+      <h2>Add expense</h2>
+      <div class="row">
+        <div><label for="xd">Date</label><input id="xd" type="date"></div>
+        <div><label for="xa">Amount (₹)</label><input id="xa" type="number" inputmode="decimal" min="0" placeholder="100"></div>
+      </div>
+      <div class="row">
+        <div><label for="xc">Category</label><select id="xc"></select></div>
+        <div><label for="xn">Note (optional)</label><input id="xn" type="text" maxlength="80"></div>
+      </div>
+      <button class="wide" id="addExp">Add expense</button>
+      <p class="msg" id="omsg" role="status"></p>
+    </section>
+    <section>
+      <h2>Add new category</h2>
+      <div class="row">
+        <div><label for="nc">Category</label><input id="nc" type="text" maxlength="30" placeholder="Medicine"></div>
+        <div><label for="nb">Budget (₹)</label><input id="nb" type="number" inputmode="decimal" min="0" placeholder="1000"></div>
+      </div>
+      <button class="quiet wide" id="addCat">Add category</button>
+    </section>
+    <section>
+      <h2>Expense entries</h2>
+      <ul id="expList"></ul>
+    </section>
+    <button class="wide" id="goReport">Report</button>
+  </div>
+</div>
+
+<div id="report" hidden>
+  <button class="quiet back" id="repBack">Back</button>
+  <h1 id="repTitle">Report</h1>
+  <div class="sheet" id="sheet1"></div>
+  <div class="sheet" id="sheet2"></div>
+  <button class="wide" id="export">Download Excel file (.xlsx)</button>
+  <p class="msg" id="rmsg" role="status"></p>
+</div>
+
+</main>
+<script>
+(function(){
+var KEY="budget-v2";
+var MN=["January","February","March","April","May","June","July","August","September","October","November","December"];
+var S={months:{}};
+try{var raw=localStorage.getItem(KEY);if(raw){S=JSON.parse(raw)||S;if(!S.months)S.months={};}}catch(e){}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+function $(id){return document.getElementById(id);}
+function pad(n){return String(n).padStart(2,"0");}
+function today(){var d=new Date();return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());}
+function money(n){return "₹"+Number(n).toLocaleString("en-IN",{maximumFractionDigits:2});}
+function label(k){return MN[+k.slice(5,7)-1]+" "+k.slice(0,4);}
+function add(p,tag,text,cls){var e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;p.appendChild(e);return e;}
+function say(id,t,warn){$(id).textContent=t||"";$(id).className="msg"+(warn?" neg":"");}
+function sum(a,f){return a.reduce(function(s,x){return s+f(x);},0);}
+function spentBy(m,c){return sum(m.exp.filter(function(x){return x.cat===c;}),function(x){return x.amt;});}
+function total(m){return sum(m.items,function(i){return i.amt;});}
+function spentAll(m){return sum(m.exp,function(x){return x.amt;});}
+
+var openCats={},cur=null,ckey=null,draft=[],views=["home","create","pick","open","report"];
+function show(v){views.forEach(function(id){$(id).hidden=id!==v;});window.scrollTo(0,0);}
+Array.prototype.forEach.call(document.querySelectorAll("[data-home]"),function(b){b.onclick=function(){show("home");};});
+
+/* Create */
+var now=new Date(),cm=$("cm"),cy=$("cy");
+MN.forEach(function(n,i){var o=add(cm,"option",n);o.value=pad(i+1);});
+for(var y=now.getFullYear()-1;y<=now.getFullYear()+1;y++){var o=add(cy,"option",String(y));o.value=String(y);}
+function loadDraft(){
+  ckey=cy.value+"-"+cm.value;
+  draft=S.months[ckey]?S.months[ckey].items.map(function(i){return {name:i.name,amt:i.amt};}):[];
+  renderDraft();say("cmsg",S.months[ckey]?label(ckey)+" already exists. Changes update it.":"");
+}
+function renderDraft(){
+  var l=$("draftList");l.textContent="";
+  if(!draft.length)add(l,"p","No items yet. Add your first budget item below.","empty");
+  draft.forEach(function(d,idx){
+    var li=add(l,"li");add(li,"span",d.name);
+    var r=add(li,"div",undefined,"amt");add(r,"div",money(d.amt));
+    var b=add(r,"button","Remove","quiet");
+    b.onclick=function(){
+      var m=S.months[ckey];
+      if(m&&m.exp.some(function(x){return x.cat===d.name;})){say("cmsg",d.name+" has expenses, so it cannot be removed.");return;}
+      draft.splice(idx,1);renderDraft();
+    };
+  });
+  $("draftTotal").textContent="Total budget: "+money(sum(draft,function(d){return d.amt;}));
+}
+cm.value=pad(now.getMonth()+1);cy.value=String(now.getFullYear());
+cm.onchange=cy.onchange=loadDraft;
+$("goCreate").onclick=function(){loadDraft();show("create");};
+$("addDraft").onclick=function(){
+  var n=$("dn").value.trim(),a=parseFloat($("da").value);
+  if(!n){say("cmsg","Type an item name.");return;}
+  if(isNaN(a)||a<0){say("cmsg","Enter a budget amount.");return;}
+  if(draft.some(function(d){return d.name.toLowerCase()===n.toLowerCase();})){say("cmsg","That item already exists.");return;}
+  draft.push({name:n,amt:a});$("dn").value="";$("da").value="";say("cmsg","");renderDraft();
+};
+$("saveBudget").onclick=function(){
+  if(!draft.length){say("cmsg","Add at least one budget item.");return;}
+  var old=S.months[ckey];
+  S.months[ckey]={items:draft,exp:old?old.exp:[]};save();
+  cur=ckey;openView();
+};
+
+/* Open */
+function keys(){return Object.keys(S.months).sort().reverse();}
+function askDelete(k){
+  var m=S.months[k],armed=false,y=+k.slice(0,4),mo=+k.slice(5,7)+1;
+  if(mo>12){mo=1;y++;}
+  mm.value=pad(mo);my.value=String(y);
+  $("delText").textContent=label(k);$("delYes").textContent="Delete month";say("pmsg","");
+  $("delBox").hidden=false;
+  $("copyYes").onclick=function(){
+    var nk=my.value+"-"+mm.value;
+    if(nk===k){say("pmsg","Pick a different month to copy to.",true);return;}
+    if(S.months[nk]){say("pmsg",label(nk)+" already has a plan. Delete it first, then copy.",true);return;}
+    S.months[nk]={items:m.items.map(function(i){return {name:i.name,amt:i.amt};}),exp:[]};
+    save();pickView();say("pickMsg","Copied "+label(k)+" to "+label(nk)+".");
+  };
+  $("delYes").onclick=function(){
+    if(!armed){armed=true;$("delYes").textContent="Confirm delete";say("pmsg","This removes the budget and "+m.exp.length+" expense entries. Tap Confirm delete to continue.",true);return;}
+    delete S.months[k];if(cur===k)cur=null;save();pickView();
+  };
+  $("delNo").onclick=function(){$("delBox").hidden=true;};
+  window.scrollTo(0,0);
+}
+function pickView(){
+  var ks=keys(),l=$("monthList");l.textContent="";
+  $("delBox").hidden=true;say("pickMsg","");$("noMonths").hidden=ks.length>0;$("pickHint").hidden=!ks.length;
+  ks.forEach(function(k){
+    var b=add(l,"button",label(k),"quiet"),t=null,long=false;
+    b.addEventListener("pointerdown",function(){long=false;clearTimeout(t);t=setTimeout(function(){long=true;askDelete(k);},600);});
+    ["pointerup","pointerleave","pointercancel"].forEach(function(ev){b.addEventListener(ev,function(){clearTimeout(t);});});
+    b.addEventListener("contextmenu",function(e){e.preventDefault();});
+    b.onclick=function(){if(long){long=false;return;}cur=k;openView();};
+  });
+  show("pick");
+}
+function openView(){
+  if(!cur||!S.months[cur]){pickView();return;}
+  $("openTitle").textContent=label(cur);openCats={};say("omsg","");renderOpen();show("open");
+}
+$("goOpen").onclick=pickView;
+$("openBack").onclick=pickView;
+function renderOpen(){
+  var m=S.months[cur],tb=total(m),sp=spentAll(m),left=tb-sp;
+  var b=$("bal");b.textContent=money(left);b.className="balance"+(left<0?" neg":"");
+  $("sum").textContent="Spent "+money(sp)+" of "+money(tb);$("sum").className="sub"+(sp>tb?" neg":"");
+  $("fill").style.width=(tb>0?Math.min(100,sp/tb*100):(sp>0?100:0))+"%";
+  $("bar").className="bar"+(left<0?" over":"");
+  var cl=$("catList");cl.textContent="";
+  m.items.forEach(function(i){
+    var s=spentBy(m,i.name),r=i.amt-s,li=add(cl,"li"),l=add(li,"div");
+    add(l,"span",i.name);var sm=add(l,"small","Budget "+money(i.amt)+" · Spent ");add(sm,"span",money(s),s>i.amt?"neg":"");
+    add(li,"span",r<0?money(-r)+" over":money(r)+" left","amt"+(r<0?" neg":""));
+  });
+  var xc=$("xc"),keep=xc.value;xc.textContent="";
+  m.items.forEach(function(i){var o=add(xc,"option",i.name);o.value=i.name;});
+  if(m.items.some(function(i){return i.name===keep;}))xc.value=keep;
+  var xd=$("xd");xd.min=cur+"-01";xd.max=cur+"-"+pad(new Date(+cur.slice(0,4),+cur.slice(5,7),0).getDate());
+  if(!xd.value||xd.value.slice(0,7)!==cur)xd.value=today().slice(0,7)===cur?today():cur+"-01";
+  var el=$("expList");el.textContent="";
+  function entry(p,x,showCat){
+    var li=add(p,"li"),l=add(li,"div"),txt=x.date.split("-").reverse().join("/")+(x.note?" – "+x.note:"");
+    if(showCat){add(l,"span",x.cat);add(l,"small",txt);}else add(l,"span",txt);
+    var r=add(li,"div",undefined,"amt");add(r,"div",money(x.amt));
+    var d=add(r,"button","Delete","quiet");
+    d.onclick=function(){m.exp=m.exp.filter(function(y){return y.id!==x.id;});save();renderOpen();};
+  }
+  var names=m.items.map(function(i){return i.name;}),any=false;
+  m.exp.forEach(function(x){if(names.indexOf(x.cat)<0)names.push(x.cat);});
+  names.forEach(function(c){
+    var xs=m.exp.filter(function(x){return x.cat===c;}).sort(function(a,b){return a.date<b.date?1:a.date>b.date?-1:b.id-a.id;});
+    if(!xs.length)return;
+    any=true;
+    if(xs.length===1){entry(el,xs[0],true);return;}
+    var t=sum(xs,function(x){return x.amt;}),it=m.items.filter(function(i){return i.name===c;})[0];
+    var li=add(el,"li",undefined,"grp"),dt=add(li,"details");
+    dt.open=!!openCats[c];
+    dt.addEventListener("toggle",function(){openCats[c]=dt.open;});
+    var sm=add(dt,"summary");
+    add(sm,"span",c+" ("+xs.length+" entries)");
+    add(sm,"span",money(t)+" total","amt"+(it&&t>it.amt?" neg":""));
+    var ul=add(dt,"ul",undefined,"sublist");
+    xs.forEach(function(x){entry(ul,x,false);});
+  });
+  if(!any)add(el,"p","No expenses yet. Add the first one above.","empty");
+}
+$("addExp").onclick=function(){
+  var m=S.months[cur],a=parseFloat($("xa").value),d=$("xd").value;
+  if(isNaN(a)||a<=0){say("omsg","Enter an amount above 0.");return;}
+  if(!d){say("omsg","Pick a date.");return;}
+  var c=$("xc").value,it=m.items.filter(function(i){return i.name===c;})[0],before=spentBy(m,c),tb0=total(m),sp0=spentAll(m);
+  m.exp.push({id:Date.now(),date:d,cat:c,amt:a,note:$("xn").value.trim()});
+  save();$("xa").value="";$("xn").value="";renderOpen();
+  var w=[];
+  if(it&&before+a>it.amt)w.push(c+" is over its budget by "+money(before+a-it.amt)+".");
+  if(sp0+a>tb0)w.push("Total spending is over the monthly budget by "+money(sp0+a-tb0)+".");
+  say("omsg",w.length?"Expense added. Warning: "+w.join(" "):"Expense added.",w.length>0);
+};
+$("addCat").onclick=function(){
+  var m=S.months[cur],n=$("nc").value.trim(),a=parseFloat($("nb").value);
+  if(!n){say("omsg","Type a category name.");return;}
+  if(isNaN(a)||a<0){say("omsg","Enter a budget for the category.");return;}
+  if(m.items.some(function(i){return i.name.toLowerCase()===n.toLowerCase();})){say("omsg","That category already exists.");return;}
+  m.items.push({name:n,amt:a});save();$("nc").value="";$("nb").value="";renderOpen();$("xc").value=n;
+  say("omsg","Category added. You can add expenses to it now.");
+};
+["xa","xn"].forEach(function(id){$(id).addEventListener("keydown",function(e){if(e.key==="Enter")$("addExp").click();});});
+
+var mm=$("mm"),my=$("my");
+MN.forEach(function(n,i){var o3=add(mm,"option",n);o3.value=pad(i+1);});
+for(var yy=now.getFullYear()-1;yy<=now.getFullYear()+1;yy++){var o4=add(my,"option",String(yy));o4.value=String(yy);}
+mm.value=pad(now.getMonth()+1);my.value=String(now.getFullYear());
+/* Report */
+function table(p,heads,rows,tot){
+  var t=add(p,"table"),h=add(add(t,"thead"),"tr");
+  heads.forEach(function(x,i){add(h,"th",x,heads.nums.indexOf(i)>-1?"n":"");});
+  var tb=add(t,"tbody");
+  rows.forEach(function(r,ri){
+    var tr=add(tb,"tr",undefined,tot&&ri===rows.length-1?"tot":"");
+    r.forEach(function(c,i){var neg=(typeof c==="number"&&heads.red&&heads.red.indexOf(i)>-1&&c<0)||(r.over===true&&i===2);
+      add(tr,"td",typeof c==="number"?money(c):c,(heads.nums.indexOf(i)>-1?"n":"")+(neg?" neg":""));});
+  });
+}
+$("goReport").onclick=function(){
+  var m=S.months[cur];
+  $("repTitle").textContent="Report – "+label(cur);
+  var a=$("sheet1"),b=$("sheet2");a.textContent="";b.textContent="";
+  var h1=["Category","Budget","Spent","Balance"];h1.nums=[1,2,3];h1.red=[3];
+  var rows=m.items.map(function(i){var s=spentBy(m,i.name),r=[i.name,i.amt,s,i.amt-s];r.over=s>i.amt;return r;});
+  var tr0=["Total",total(m),spentAll(m),total(m)-spentAll(m)];tr0.over=spentAll(m)>total(m);rows.push(tr0);
+  table(a,h1,rows,true);
+  var h2=["Date","Category","Amount","Note"];h2.nums=[2];
+  var ex=m.exp.slice().sort(function(x,y){return x.date<y.date?-1:1;}).map(function(x){return [x.date.split("-").reverse().join("/"),x.cat,x.amt,x.note||""];});
+  if(ex.length)table(b,h2,ex,false);else add(b,"p","No expense entries yet.","empty");
+  say("rmsg","");show("report");
+};
+$("repBack").onclick=function(){show("open");};
+
+/* Files: Excel report, backup, restore */
+var dl=null;
+try{if(window.claude&&claude.use)claude.use("downloads").then(function(d){dl=d;}).catch(function(){});}catch(e){}
+function saveFile(name,blob,msgId){
+  if(dl){
+    dl.save({filename:name,data:blob}).then(function(){say(msgId,"File saved.");}).catch(function(e){if(!e||e.code!=="declined")say(msgId,"Could not save the file.",true);});
+    return;
+  }
+  var a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;
+  document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);
+  say(msgId,"File downloaded.");
+}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
+function crc32(b){
+  var t=crc32.t;
+  if(!t){t=crc32.t=[];for(var n=0;n<256;n++){var c=n;for(var k=0;k<8;k++)c=c&1?0xEDB88320^(c>>>1):c>>>1;t[n]=c>>>0;}}
+  var c2=0xFFFFFFFF;for(var i=0;i<b.length;i++)c2=t[(c2^b[i])&255]^(c2>>>8);
+  return (c2^0xFFFFFFFF)>>>0;
+}
+function u16(a,v){a.push(v&255,(v>>>8)&255);}
+function u32(a,v){a.push(v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255);}
+function makeZip(files){
+  var enc=new TextEncoder(),parts=[],cen=[],off=0;
+  files.forEach(function(f){
+    var nm=enc.encode(f.name),d=enc.encode(f.data),crc=crc32(d),h=[];
+    u32(h,0x04034b50);u16(h,20);u16(h,0x0800);u16(h,0);u16(h,0);u16(h,0x21);
+    u32(h,crc);u32(h,d.length);u32(h,d.length);u16(h,nm.length);u16(h,0);
+    var hb=new Uint8Array(h);parts.push(hb,nm,d);
+    u32(cen,0x02014b50);u16(cen,20);u16(cen,20);u16(cen,0x0800);u16(cen,0);u16(cen,0);u16(cen,0x21);
+    u32(cen,crc);u32(cen,d.length);u32(cen,d.length);u16(cen,nm.length);u16(cen,0);u16(cen,0);u16(cen,0);u16(cen,0);u32(cen,0);u32(cen,off);
+    for(var i=0;i<nm.length;i++)cen.push(nm[i]);
+    off+=hb.length+nm.length+d.length;
+  });
+  var e=[];u32(e,0x06054b50);u16(e,0);u16(e,0);u16(e,files.length);u16(e,files.length);u32(e,cen.length);u32(e,off);u16(e,0);
+  parts.push(new Uint8Array(cen),new Uint8Array(e));
+  return new Blob(parts,{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"});
+}
+function xfs(){
+  var d=[[0,0,0,0],[0,1,2,1],[0,0,0,1],[4,0,0,1],[4,2,0,1],[0,1,2,1],[4,1,2,1],[4,3,2,1],[0,2,0,1],[0,1,0,0],[0,3,2,1]];
+  return d.map(function(x){return '<xf numFmtId="'+x[0]+'" fontId="'+x[1]+'" fillId="'+x[2]+'" borderId="'+x[3]+'" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"/>';}).join("");
+}
+function reportRows(m,title){
+  function T(v,s){return {v:v,s:s};}
+  var rows=[[T(title,9)],[],[T("Category",1),T("Budget",1),T("Spent",1),T("Balance",1),T("Status",1)]];
+  m.items.forEach(function(i){
+    var s=spentBy(m,i.name),o=s>i.amt,bl=i.amt-s;
+    rows.push([T(i.name,2),T(i.amt,3),T(s,o?4:3),T(bl,bl<0?4:3),T(o?"OVER BUDGET":"OK",o?8:2)]);
+  });
+  var tb=total(m),sp=spentAll(m),ov=sp>tb;
+  rows.push([T("Total",5),T(tb,6),T(sp,ov?7:6),T(tb-sp,tb-sp<0?7:6),T(ov?"OVER BUDGET":"OK",ov?10:5)]);
+  rows.push([],[T("Date",1),T("Category",1),T("Amount",1),T("Note",1)]);
+  m.exp.slice().sort(function(a,b){return a.date<b.date?-1:a.date>b.date?1:a.id-b.id;}).forEach(function(x){
+    rows.push([T(x.date.split("-").reverse().join("/"),2),T(x.cat,2),T(x.amt,3),T(x.note||"",2)]);
+  });
+  return rows;
+}
+function makeXlsx(key){
+  var m=S.months[key],rows=reportRows(m,"Budget report – "+label(key)),NS='xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"';
+  var H='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  var sh=H+'<worksheet '+NS+'><cols><col min="1" max="1" width="24" customWidth="1"/><col min="2" max="4" width="16" customWidth="1"/><col min="5" max="5" width="30" customWidth="1"/></cols><sheetData>';
+  rows.forEach(function(r,ri){
+    sh+='<row r="'+(ri+1)+'">';
+    r.forEach(function(c,ci){
+      var ref=String.fromCharCode(65+ci)+(ri+1);
+      sh+=typeof c.v==="number"?'<c r="'+ref+'" s="'+c.s+'"><v>'+c.v+'</v></c>':'<c r="'+ref+'" s="'+c.s+'" t="inlineStr"><is><t xml:space="preserve">'+esc(c.v)+'</t></is></c>';
+    });
+    sh+='</row>';
+  });
+  sh+='</sheetData></worksheet>';
+  var f=function(b,c){return '<font>'+(b?'<b/>':'')+'<sz val="11"/>'+(c?'<color rgb="FFC00000"/>':'')+'<name val="Calibri"/></font>';};
+  var bd='<border><left style="thin"><color rgb="FFBBBBBB"/></left><right style="thin"><color rgb="FFBBBBBB"/></right><top style="thin"><color rgb="FFBBBBBB"/></top><bottom style="thin"><color rgb="FFBBBBBB"/></bottom><diagonal/></border>';
+  var st=H+'<styleSheet '+NS+'><fonts count="4">'+f(0,0)+f(1,0)+f(0,1)+f(1,1)+'</fonts><fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFE2ECE9"/><bgColor indexed="64"/></patternFill></fill></fills><borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>'+bd+'</borders><cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs><cellXfs count="11">'+xfs()+'</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+  var R='http://schemas.openxmlformats.org/officeDocument/2006/relationships',P='http://schemas.openxmlformats.org/package/2006/relationships';
+  return makeZip([
+    {name:"[Content_Types].xml",data:H+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>'},
+    {name:"_rels/.rels",data:H+'<Relationships xmlns="'+P+'"><Relationship Id="rId1" Type="'+R+'/officeDocument" Target="xl/workbook.xml"/></Relationships>'},
+    {name:"xl/workbook.xml",data:H+'<workbook '+NS+' xmlns:r="'+R+'"><sheets><sheet name="Report" sheetId="1" r:id="rId1"/></sheets></workbook>'},
+    {name:"xl/_rels/workbook.xml.rels",data:H+'<Relationships xmlns="'+P+'"><Relationship Id="rId1" Type="'+R+'/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="'+R+'/styles" Target="styles.xml"/></Relationships>'},
+    {name:"xl/styles.xml",data:st},
+    {name:"xl/worksheets/sheet1.xml",data:sh}
+  ]);
+}
+$("export").onclick=function(){saveFile("budget-"+cur+".xlsx",makeXlsx(cur),"rmsg");};
+
+$("bkUp").onclick=function(){
+  if(!Object.keys(S.months).length){say("hmsg","Nothing to back up yet.",true);return;}
+  saveFile("budget-backup-"+today()+".json",new Blob([JSON.stringify(S)],{type:"application/json"}),"hmsg");
+};
+$("bkIn").onclick=function(){$("rf").click();};
+$("rf").onchange=function(){
+  var f=this.files&&this.files[0];if(!f)return;
+  var fr=new FileReader();
+  fr.onload=function(){
+    try{
+      var b=JSON.parse(fr.result),n=0,k=0;
+      if(!b||typeof b.months!=="object"||!b.months)throw 0;
+      Object.keys(b.months).forEach(function(key){
+        var m=b.months[key];
+        if(!/^\d{4}-\d{2}$/.test(key)||!m||!Array.isArray(m.items)||!Array.isArray(m.exp))return;
+        if(S.months[key]){k++;return;}
+        S.months[key]={
+          items:m.items.filter(function(i){return i&&typeof i.name==="string"&&typeof i.amt==="number";}).map(function(i){return {name:i.name,amt:i.amt};}),
+          exp:m.exp.filter(function(x){return x&&typeof x.cat==="string"&&typeof x.amt==="number"&&/^\d{4}-\d{2}-\d{2}$/.test(String(x.date));}).map(function(x,j){return {id:typeof x.id==="number"?x.id:Date.now()+j,date:x.date,cat:x.cat,amt:x.amt,note:typeof x.note==="string"?x.note:""};})
+        };
+        n++;
+      });
+      save();
+      say("hmsg","Restored "+n+" month"+(n===1?"":"s")+"."+(k?" Skipped "+k+" that already exist here.":""),false);
+    }catch(e){say("hmsg","That file is not a valid backup.",true);}
+    $("rf").value="";
+  };
+  fr.readAsText(f);
+};
+})();
+</script>
+</body>
+</html>
