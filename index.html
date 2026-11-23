@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Monthly Budget</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0f6b61">
+<link rel="icon" href="icon-192.png">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@700&display=swap">
 <style>
 :root{--bg:#edf2f0;--surface:#fff;--ink:#12302c;--muted:#5d7571;--line:#d3dfdc;--accent:#0f6b61;--on-accent:#fff;--bad:#b4281e;--track:#dbe6e3;--head:#e2ece9;
@@ -44,6 +47,7 @@ li button{padding:2px 8px;margin-top:4px;font-size:.8rem}
 .empty{color:var(--muted);margin:0}
 .msg{min-height:1.2em;font-size:.85rem;color:var(--muted);margin:6px 0 0}
 .msg.neg{color:var(--bad);font-weight:600}
+#catList li{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
 li.grp{display:block}
 details{width:100%}
 summary{display:flex;justify-content:space-between;gap:10px;cursor:pointer;font-weight:600;list-style:none}
@@ -132,6 +136,14 @@ tr.tot td{font-weight:700;background:var(--head)}
     <section>
       <h2>Budget and expenses</h2>
       <ul id="catList"></ul>
+      <p class="sub" style="margin:8px 0 0">Long press a category to edit or delete it.</p>
+    </section>
+    <section id="catBox" hidden>
+      <h2 id="cbTitle">Edit category</h2>
+      <div class="row"><div><label for="cbName">Name</label><input id="cbName" type="text" maxlength="30"></div><div><label for="cbAmt">Budget (₹)</label><input id="cbAmt" type="number" inputmode="decimal" min="0"></div></div>
+      <button class="wide" id="cbSave" style="margin-bottom:10px">Save changes</button>
+      <div class="row" style="margin:0"><div><button class="quiet wide" id="cbDel">Delete category</button></div><div><button class="quiet wide" id="cbNo">Cancel</button></div></div>
+      <p class="msg" id="cbMsg" role="status"></p>
     </section>
     <section>
       <h2>Add expense</h2>
@@ -272,10 +284,43 @@ function pickView(){
 }
 function openView(){
   if(!cur||!S.months[cur]){pickView();return;}
-  $("openTitle").textContent=label(cur);openCats={};say("omsg","");renderOpen();show("open");
+  $("openTitle").textContent=label(cur);openCats={};$("catBox").hidden=true;say("omsg","");renderOpen();show("open");
 }
 $("goOpen").onclick=pickView;
 $("openBack").onclick=pickView;
+function longPress(el,fn){
+  var t=null;
+  el.addEventListener("pointerdown",function(){clearTimeout(t);t=setTimeout(fn,600);});
+  ["pointerup","pointerleave","pointercancel"].forEach(function(ev){el.addEventListener(ev,function(){clearTimeout(t);});});
+  el.addEventListener("contextmenu",function(e){e.preventDefault();});
+}
+function editCat(name){
+  var m=S.months[cur],it=m.items.filter(function(i){return i.name===name;})[0];
+  if(!it)return;
+  var armed=false,n=m.exp.filter(function(x){return x.cat===name;}).length;
+  $("cbTitle").textContent=name;$("cbName").value=name;$("cbAmt").value=it.amt;
+  $("cbDel").textContent="Delete category";say("cbMsg","");
+  $("catBox").hidden=false;$("catBox").scrollIntoView({block:"center"});
+  $("cbSave").onclick=function(){
+    var nn=$("cbName").value.trim(),a=parseFloat($("cbAmt").value);
+    if(!nn){say("cbMsg","Type a category name.",true);return;}
+    if(isNaN(a)||a<0){say("cbMsg","Enter a budget amount.",true);return;}
+    if(nn.toLowerCase()!==name.toLowerCase()&&m.items.some(function(i){return i.name.toLowerCase()===nn.toLowerCase();})){say("cbMsg","That category already exists.",true);return;}
+    m.exp.forEach(function(x){if(x.cat===name)x.cat=nn;});
+    it.name=nn;it.amt=a;save();$("catBox").hidden=true;renderOpen();say("omsg","Category updated.");
+  };
+  $("cbDel").onclick=function(){
+    if(!armed){
+      armed=true;$("cbDel").textContent="Confirm delete";
+      say("cbMsg",n?"This removes "+name+" and its "+n+" expense "+(n===1?"entry":"entries")+". Tap Confirm delete to continue.":"This removes "+name+". Tap Confirm delete to continue.",true);
+      return;
+    }
+    m.items=m.items.filter(function(i){return i!==it;});
+    m.exp=m.exp.filter(function(x){return x.cat!==name;});
+    save();$("catBox").hidden=true;renderOpen();say("omsg",name+" deleted.");
+  };
+  $("cbNo").onclick=function(){$("catBox").hidden=true;};
+}
 function renderOpen(){
   var m=S.months[cur],tb=total(m),sp=spentAll(m),left=tb-sp;
   var b=$("bal");b.textContent=money(left);b.className="balance"+(left<0?" neg":"");
@@ -284,7 +329,7 @@ function renderOpen(){
   $("bar").className="bar"+(left<0?" over":"");
   var cl=$("catList");cl.textContent="";
   m.items.forEach(function(i){
-    var s=spentBy(m,i.name),r=i.amt-s,li=add(cl,"li"),l=add(li,"div");
+    var s=spentBy(m,i.name),r=i.amt-s,li=add(cl,"li"),l=add(li,"div");longPress(li,function(){editCat(i.name);});
     add(l,"span",i.name);var sm=add(l,"small","Budget "+money(i.amt)+" · Spent ");add(sm,"span",money(s),s>i.amt?"neg":"");
     add(li,"span",r<0?money(-r)+" over":money(r)+" left","amt"+(r<0?" neg":""));
   });
@@ -324,6 +369,7 @@ $("addExp").onclick=function(){
   var m=S.months[cur],a=parseFloat($("xa").value),d=$("xd").value;
   if(isNaN(a)||a<=0){say("omsg","Enter an amount above 0.");return;}
   if(!d){say("omsg","Pick a date.");return;}
+  if(!$("xc").value){say("omsg","Add a category first.",true);return;}
   var c=$("xc").value,it=m.items.filter(function(i){return i.name===c;})[0],before=spentBy(m,c),tb0=total(m),sp0=spentAll(m);
   m.exp.push({id:Date.now(),date:d,cat:c,amt:a,note:$("xn").value.trim()});
   save();$("xa").value="";$("xn").value="";renderOpen();
@@ -486,6 +532,9 @@ $("rf").onchange=function(){
   };
   fr.readAsText(f);
 };
+try{
+  if("serviceWorker" in navigator)window.addEventListener("load",function(){navigator.serviceWorker.register("sw.js").catch(function(){});});
+}catch(e){}
 })();
 </script>
 </body>
